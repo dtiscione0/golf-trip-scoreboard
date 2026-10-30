@@ -1,0 +1,129 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Annual Golf Trip Cup</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+:root{--bg:#0e2a1b;--card:rgba(255,255,255,.95);--ink:#14231a;--mut:#5c6b61;--gold:#d4a93c;--sand:#efe3c2;--n:#2a5db0;--s:#b03a2e;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:inherit}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;font:16px system-ui,sans-serif;color:#fff;min-height:100vh;background:repeating-linear-gradient(100deg,#123a25 0 38px,#154429 38px 76px),var(--bg);background-attachment:fixed}
+body::before{content:"";position:fixed;inset:0;background:linear-gradient(#0a1f14cc,#0e2a1b66 40%,#0a1f14ee);z-index:-1}
+main{max-width:640px;margin:0 auto;padding:12px 12px 90px}
+h1{font:700 26px Georgia,serif;margin:6px 0;color:var(--gold);text-align:center}h2{font:600 18px Georgia,serif;margin:16px 0 8px;color:var(--sand)}
+.c{background:var(--card);color:var(--ink);border-radius:14px;padding:12px;margin:10px 0;box-shadow:0 2px 8px #0006}
+.c h3{margin:0 0 6px;font-size:15px}.mut{color:var(--mut);font-size:13px}
+.hero{display:flex;gap:10px}.hero>div{flex:1;text-align:center;border-radius:12px;padding:10px;color:#fff}
+.hero b{font-size:44px;display:block;line-height:1}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:#0a1f14;border-top:2px solid var(--gold);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav button{flex:1;background:none;border:0;color:#cfd8d2;padding:12px 2px;font-size:13px}nav .on{color:var(--gold);font-weight:700}
+button,select,input{font:inherit}.b{background:var(--gold);color:#222;border:0;border-radius:10px;padding:10px 14px;font-weight:700}.b.g{background:#e3e6e4}.b.r{background:#b03a2e;color:#fff}
+input,select{padding:8px;border:1px solid #bbb;border-radius:8px;max-width:100%;background:#fff;color:#111}input[type=number]{width:78px}
+table{width:100%;border-collapse:collapse}td,th{padding:6px 4px;text-align:left;border-bottom:1px solid #0001}td:last-child,th:last-child{text-align:right}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:6px 0}
+.chip{min-width:32px;padding:6px;border-radius:8px;border:1px solid #bbb;background:#fff;color:#111;text-align:center;font-size:13px}.chip.on{background:var(--gold);border-color:var(--gold)}.chip.d{background:#cfe6d3}
+.st{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #0001}.st button{width:44px;height:44px;border-radius:50%;border:0;background:var(--gold);font-size:24px;font-weight:700}.st .v{font-size:28px;min-width:40px;text-align:center;display:inline-block}
+.N{color:var(--n);font-weight:700}.S{color:var(--s);font-weight:700}.bar{height:10px;border-radius:5px;background:#0002;overflow:hidden;display:flex}
+.tag{font-size:11px;background:#f4c542;border-radius:6px;padding:1px 5px;color:#000}
+@media(max-width:380px){.hero b{font-size:34px}}
+</style></head><body><main id="app"></main><nav id="nav"></nav>
+<script>
+// PASTE YOUR FIREBASE REALTIME DATABASE URL BETWEEN THE QUOTES, e.g. https://my-trip-default-rtdb.firebaseio.com
+const FB='',K='golfcup1',FM={fb:['Four Ball',2],hl:['High-Low',2],sg:['Singles',1],sp:['Stroke Play',0]};
+const mkC=(n)=>({n,r:72,s:113,par:Array(18).fill(4).map((v,i)=>[2,6,11,15].includes(i)?3:[4,8,12,17].includes(i)?5:4),si:[7,1,13,5,11,3,15,9,17,8,2,14,6,12,4,16,10,18],ok:false});
+const def=()=>({name:'Annual Golf Trip Cup',year:2027,pass:'golf',
+teams:[{n:'The North',c:'#2a5db0'},{n:'The South',c:'#b03a2e'}],
+players:[['Dave',0],['George',0],['Allen',0],['Jared',0],['John',1],['Les',1],['Kevin',1],['Scott',1]].map(x=>({n:x[0],h:10,t:x[1]})),
+courses:['Pine Needles','Mid Pines','Southern Pines'].map(mkC),
+rounds:[{l:'Friday',f:'fb',c:0,m:[{a:[0,1],b:[4,5]},{a:[2,3],b:[6,7]}]},{l:'Saturday AM',f:'hl',c:1,m:[{a:[0,1],b:[4,5]},{a:[2,3],b:[6,7]}]},{l:'Saturday PM',f:'sg',c:1,m:[0,1,2,3].map(i=>({a:[i],b:[i+4]}))},{l:'Sunday',f:'sp',c:2,m:[]}],
+sc:{},hist:[],arch:[]});
+let S,U={open:{},scan:{},tab:'home',ri:0,gi:0,h:0,d:{},ex:null,unlocked:false,msg:''},dbr=null;
+function mig(s){s.rounds.forEach(r=>{r.cup??=r.f!='sp';r.g??=true;r.n??=true});s.hist=s.hist||[];s.arch=s.arch||[];return s}
+S=mig(def());
+const $=s=>document.getElementById(s),P=i=>S.players[i];
+const sha=async s=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode('gtc|'+s)))].map(x=>x.toString(16).padStart(2,'0')).join('').slice(0,40);
+let FID=null,es;const H=u=>FB+'/cups/'+FID+u+'.json';
+async function put(u,v,m){try{await fetch(H(u),{method:m||'PUT',body:JSON.stringify(v)})}catch(e){}}
+function save(keys){if(!FB){try{localStorage.setItem(K+FID,JSON.stringify(S))}catch(e){}return}
+if(Array.isArray(keys)){const o={};keys.forEach(k=>o[k]=JSON.stringify(S.sc[k]||[]));put('/sc',o,'PATCH')}else{const c={...S};delete c.sc;delete c.hist;put('/cfg',JSON.stringify(c));if(keys===true)put('/sc',Object.fromEntries(Object.entries(S.sc).map(([k,v])=>[k,JSON.stringify(v)])))}}
+function apply(d){const sc={};for(const k in d.sc||{})sc[k]=JSON.parse(d.sc[k]);S=mig({...JSON.parse(d.cfg),sc,hist:S.hist||[]})}
+async function pull(){try{const d=await(await fetch(H(''))).json();if(!d||!d.cfg)return;const k=d.cfg+JSON.stringify(d.sc);if(k==U.k)return;U.k=k;apply(d);const a=document.activeElement;if(!(a&&/INPUT|SELECT/.test(a.tagName)))R()}catch(e){}}
+function stream(){if(!FB)return;es&&es.close();es=new EventSource(H(''));let t;const f=()=>{clearTimeout(t);t=setTimeout(pull,250)};es.addEventListener('put',f);es.addEventListener('patch',f)}
+document.addEventListener('visibilitychange',()=>U.in&&FB&&pull());
+async function login(pw,create){if(!pw)return;U.err='';try{FID=await sha(pw);let d=null;if(FB)d=await(await fetch(H(''))).json();else{try{const l=JSON.parse(localStorage.getItem(K+FID));if(l)d={local:l}}catch(e){}}
+if(d&&d.local)S=mig(d.local);else if(d&&d.cfg){apply(d);U.k=d.cfg+JSON.stringify(d.sc)}else if(create){S=mig(def());save(true)}else{U.nf=pw;U.err='No tournament found with that password.';R();return}
+try{localStorage.setItem('gcpw',pw)}catch(e){}U.in=true;U.nf=0;stream();R()}catch(e){U.err='Could not connect. Check the database URL.';R()}}
+function logout(){try{localStorage.removeItem('gcpw')}catch(e){}es&&es.close();U.in=false;U.unlocked=false;U.nf=0;S=mig(def());R()}
+function gate(){$('nav').innerHTML='';$('app').innerHTML=`<h1>⛳ Annual Golf Trip Cup</h1><div class="c"><h3>Enter tournament password</h3><div class="row"><input id="pw" type="password" placeholder="Password" style="flex:1"><button class="b" onclick="login($('pw').value)">Enter</button></div><div class="mut">${U.err||''}</div>${U.nf?'<button class="b g" onclick="login(U.nf,true)">Create new tournament with this password</button>':''}${FB?'':'<div class="mut">Local mode: no database configured, so scores stay on this device.</div>'}</div>`}
+const sum=a=>a.reduce((x,y)=>x+y,0),cr=ri=>S.courses[S.rounds[ri].c];
+const CH=(p,c)=>Math.round(p.h*c.s/113+(c.r-sum(c.par)));
+const strk=(ch,si)=>ch<=0?0:Math.floor(ch/18)+(si<=ch%18?1:0);
+const G=(ri,pi,h)=>{const v=(S.sc[ri+'_'+pi]||[])[h];return v==null?null:v};
+const NT=(ri,pi,h)=>{const g=G(ri,pi,h);if(g==null)return null;const c=cr(ri);return g-strk(CH(P(pi),c),c.si[h])};
+function match(ri,m){const f=S.rounds[ri].f,hs=[];let pa=0,pb=0,up=0,pl=0;
+for(let h=0;h<18;h++){const na=m.a.map(p=>NT(ri,p,h)),nb=m.b.map(p=>NT(ri,p,h));if([...na,...nb].includes(null)){hs.push(null);continue}pl++;let a=0,b=0;
+if(f=='hl'){const x=[...na].sort((p,q)=>p-q),y=[...nb].sort((p,q)=>p-q);for(let k=0;k<2;k++){x[k]<y[k]?a++:x[k]>y[k]?b++:(a+=.5,b+=.5)}}
+else{const x=Math.min(...na),y=Math.min(...nb);x<y?a=1:x>y?b=1:(a=.5,b=.5)}
+pa+=a;pb+=b;up+=a-b;hs.push({a,b,na,nb})}
+const val=S.rounds[ri].v??FM[f][1],done=pl==18;let ca=0,cb=0;if(done){pa>pb?ca=val:pa<pb?cb=val:(ca=cb=val/2)}
+const nm=i=>S.teams[i].n.replace(/^The /,'');let st;
+if(!pl)st='Not started';else if(f=='hl')st=pa==pb?'Tied '+pa+'–'+pb:(pa>pb?nm(S.players[m.a[0]].t)+' ':nm(S.players[m.b[0]].t)+' ')+Math.max(pa,pb)+'–'+Math.min(pa,pb);
+else st=up==0?'All Square':(up>0?nm(P(m.a[0]).t):nm(P(m.b[0]).t))+' '+Math.abs(up)+' UP';
+if(pl&&pl<18)st+=' thru '+pl;if(done)st='FINAL: '+st;
+return{hs,pa,pb,ca,cb,pl,done,st}}
+function cup(){let a=0,b=0,rem=0;S.rounds.forEach((r,ri)=>r.cup&&r.m.forEach(m=>{const x=match(ri,m);a+=x.ca;b+=x.cb;rem+=x.done?0:(r.v??FM[r.f][1])}));return{a,b,rem}}
+function board(net){return S.players.map((p,i)=>{let tot=0,par=0,n=0;S.rounds.forEach((r,ri)=>{if(!(net?r.n:r.g))return;const c=cr(ri);for(let h=0;h<18;h++){const v=net?NT(ri,i,h):G(ri,i,h);if(v!=null){tot+=v;par+=c.par[h];n++}}});return{i,tot,d:tot-par,n}}).filter(x=>x.n).sort((a,b)=>a.d-b.d||b.n-a.n)}
+const fd=d=>d==0?'E':d>0?'+'+d:d;
+function lb(net){const b=board(net);if(!b.length)return'<div class="mut">No scores yet</div>';return'<table>'+b.map((x,k)=>`<tr><td>${k+1}</td><td class="${x.i<4&&0}">${P(x.i).n} <span class="mut">(${x.n}h)</span></td><td>${x.tot} · <b>${fd(x.d)}</b>${k?` <span class="mut">(+${x.d-b[0].d})</span>`:''}</td></tr>`).join('')+'</table>'}
+const tc=t=>S.teams[t].c,esc=s=>String(s).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+function mname(ri,m){return`<span style="color:${tc(P(m.a[0]).t)}">${m.a.map(p=>P(p).n).join('/')}</span> vs <span style="color:${tc(P(m.b[0]).t)}">${m.b.map(p=>P(m.b[0]).t==P(p).t?P(p).n:P(p).n).join('/')}</span>`}
+function home(){const c=cup(),tot=c.a+c.b+c.rem||1;
+return`<h1>⛳ ${esc(S.name)} ${S.year}</h1><div class="hero"><div style="background:${tc(0)}">${esc(S.teams[0].n)}<b>${c.a}</b></div><div style="background:${tc(1)}">${esc(S.teams[1].n)}<b>${c.b}</b></div></div>
+<div class="c"><div class="bar"><div style="width:${c.a/tot*100}%;background:${tc(0)}"></div><div style="width:${c.rem/tot*100}%"></div><div style="width:${c.b/tot*100}%;background:${tc(1)}"></div></div><div class="mut" style="text-align:center;margin-top:4px">Points remaining: ${c.rem} · ${c.a+c.b+c.rem>0?'Win at >'+(tot/2):''}</div></div>
+<div class="c"><h3>🏆 Gross Championship <span class="mut">(total · to par · strokes back)</span></h3>${lb(0)}</div>
+<div class="c"><h3>📊 Net Championship</h3>${lb(1)}</div>`}
+function matches(){let o='<h1>Ryder Cup</h1>'+dt('how','How games are decided',`<p><b>Net score</b> = gross minus handicap strokes on that hole. Course handicap = Index × Slope ÷ 113 + (Rating − Par), rounded; strokes go on the hardest holes first (lowest stroke index).</p><p><b>Four Ball:</b> each player plays their own ball. A team's score on a hole is its better net score. Lower wins the hole, equal = halved. The team that wins more holes wins the match.</p><p><b>High-Low:</b> each hole is worth 2 points. Each team's two net scores are ranked. The two lowest face off (1 point) and the two highest face off (1 point); a tie splits that point ½–½. Most points over 18 holes wins the match.</p><p><b>Singles:</b> one-on-one match play on net score. Lower net wins the hole; most holes won wins the match.</p><p><b>Ryder Cup points:</b> the winner gets the match's value (set per round in Admin). A tied match gives each team half the value (2 pts → 1 each, 1 pt → 0.5 each). Points are awarded once all 18 holes are entered.</p>`);S.rounds.forEach((r,ri)=>{if(!r.m.length||!r.cup)return;o+=`<h2>${r.l} · ${FM[r.f][0]} · ${esc(cr(ri).n)}</h2>`;r.m.forEach((m,mi)=>{const x=match(ri,m),k=ri+'_'+mi;
+o+=`<div class="c"><b>${mname(ri,m)}</b><div>${x.st}${r.f=='hl'&&x.pl?` <span class="mut">(pts ${x.pa}–${x.pb})</span>`:''}</div><div class="row">${x.hs.map((z,h)=>`<div class="chip ${z?'d':''} ${U.ex==k+'_'+h?'on':''}" onclick="U.ex='${k}_${h}';R()">${h+1}<br>${z?(z.a>z.b?'<span class=N style=color:'+tc(P(m.a[0]).t)+'>●</span>':z.a<z.b?'<span style=color:'+tc(P(m.b[0]).t)+'>●</span>':'–'):'·'}</div>`).join('')}</div>${U.ex&&U.ex.startsWith(k+'_')?expl(ri,m,+U.ex.split('_')[2]):'<div class="mut">Tap a hole for the match explanation</div>'}</div>`})});return o}
+function expl(ri,m,h){const c=cr(ri),x=match(ri,m).hs[h];let o=`<div style="background:#eef3ee;border-radius:8px;padding:8px;margin-top:6px"><b>Hole ${h+1}</b> · Par ${c.par[h]} · SI ${c.si[h]}<br>`;
+[...m.a,...m.b].forEach(p=>{const g=G(ri,p,h),s=strk(CH(P(p),c),c.si[h]);o+=`${P(p).n}: gross ${g??'–'}, ${s} stroke${s==1?'':'s'}, net ${g==null?'–':g-s}<br>`});
+if(!x)return o+'<i>Not all scores in yet.</i></div>';const f=S.rounds[ri].f;
+return o+'<b>'+(f=='hl'?`North/South hole points: ${x.a}–${x.b} (low ball: ${Math.min(...x.na)} v ${Math.min(...x.nb)}, high ball: ${Math.max(...x.na)} v ${Math.max(...x.nb)})`:x.a>x.b?'Hole won by '+S.teams[P(m.a[0]).t].n+' (best net '+Math.min(...x.na)+' v '+Math.min(...x.nb)+')':x.a<x.b?'Hole won by '+S.teams[P(m.b[0]).t].n+' (best net '+Math.min(...x.na)+' v '+Math.min(...x.nb)+')':'Hole halved')+'</b></div>'}
+function grp(ri,gi){const r=S.rounds[ri];if(r.f=='sp')return S.players.map((_,i)=>i).slice(gi*4,gi*4+4);
+const ms=r.f=='sg'?r.m.slice(gi*2,gi*2+2):r.m.slice(gi,gi+1);return ms.flatMap(m=>[...m.a,...m.b])}
+function score(){const r=S.rounds[U.ri],c=cr(U.ri),ps=grp(U.ri,U.gi),h=U.h,ng=r.f=='fb'||r.f=='hl'?r.m.length:2;
+let o='<h1>Enter Scores</h1><div class="row">'+S.rounds.map((x,i)=>`<button class="chip ${i==U.ri?'on':''}" onclick="U.ri=${i};U.gi=0;U.d={};R()">${x.l}</button>`).join('')+'</div><div class="row">'+Array.from({length:ng},(_,i)=>`<button class="chip ${i==U.gi?'on':''}" onclick="U.gi=${i};U.d={};R()">Group ${i+1}</button>`).join('')+'</div>';
+if(!c.ok)o+=`<div class="c"><span class="tag">UNCONFIRMED</span> ${esc(c.n)} scorecard hasn't been confirmed in Admin. Net scores may be wrong.</div>`;
+o+='<div class="row">'+Array.from({length:18},(_,i)=>{const d=ps.every(p=>G(U.ri,p,i)!=null);return`<div class="chip ${i==h?'on':d?'d':''}" onclick="U.h=${i};U.d={};R()">${i+1}</div>`}).join('')+'</div>';
+o+=`<div class="c"><h3>Hole ${h+1} · Par ${c.par[h]} · SI ${c.si[h]}</h3>`+ps.map(p=>{const v=U.d[p]??G(U.ri,p,h)??c.par[h],s=strk(CH(P(p),c),c.si[h]);return`<div class="st"><span><b style="color:${tc(P(p).t)}">${P(p).n}</b><br><b>${pr(U.ri,p)}</b><br>${rkb(p)} <span class="mut">CH ${CH(P(p),c)}${s?' · gets '+s+' stroke'+(s>1?'s':''):''}</span></span><span><button onclick="adj(${p},-1)">−</button><span class="v">${v}</span><button onclick="adj(${p},1)">+</button></span></div>`}).join('')+`<div class="row"><button class="b" onclick="sv()">Save hole ${h+1}</button><button class="b g" onclick="undo()" ${S.hist.length?'':'disabled'}>↶ Undo last</button></div><div class="mut">${U.msg}</div><div class="mut">Tap any hole number above to edit it.</div></div>`+live();return o}
+function pr(ri,p){let g=0,q=0,n=0;const c=cr(ri);for(let h=0;h<18;h++){const v=G(ri,p,h);if(v!=null){g+=v;q+=c.par[h];n++}}return n?g+' ('+fd(g-q)+') thru '+n:'No scores yet'}
+function rk(net,p){const b=board(net),x=b.find(y=>y.i==p);if(!x)return'–';const r=1+b.filter(y=>y.d<x.d).length;return(b.filter(y=>y.d==x.d).length>1?'T':'')+r}
+function rkb(p){return`<span class="tag" style="background:#e9c35a">Gross ${rk(0,p)}</span> <span class="tag" style="background:#9cc4f0">Net ${rk(1,p)}</span>`}
+function live(){const r=S.rounds[U.ri];if(!r.m.length)return'';const ms=r.f=='sg'?r.m.slice(U.gi*2,U.gi*2+2):r.m.slice(U.gi,U.gi+1);return`<div class="c"><h3>Live match${ms.length>1?'es':''}</h3>`+ms.map(m=>{const x=match(U.ri,m);return`<div style="padding:6px 0;border-top:1px solid #0001"><b>${mname(U.ri,m)}</b><div>${x.st}${r.f=='hl'&&x.pl?` <span class="mut">(pts ${x.pa}–${x.pb})</span>`:''}</div></div>`}).join('')+'</div>'}
+function adj(p,d){const c=cr(U.ri),v=U.d[p]??G(U.ri,p,U.h)??c.par[U.h];U.d[p]=Math.max(1,v+d);R()}
+function sv(){const c=cr(U.ri),ps=grp(U.ri,U.gi),prev={};ps.forEach(p=>{const k=U.ri+'_'+p,a=S.sc[k]=S.sc[k]||Array(18).fill(null);prev[p]=a[U.h];a[U.h]=U.d[p]??a[U.h]??c.par[U.h]});S.hist.push({ri:U.ri,h:U.h,prev});if(S.hist.length>60)S.hist.shift();U.msg='Saved hole '+(U.h+1);U.d={};if(U.h<17)U.h++;save(ps.map(p=>U.ri+'_'+p));R()}
+function undo(){const x=S.hist.pop();if(!x)return;for(const p in x.prev)S.sc[x.ri+'_'+p][x.h]=x.prev[p];U.ri=x.ri;U.h=x.h;U.msg='Undid hole '+(x.h+1);save(Object.keys(x.prev).map(p=>x.ri+'_'+p));R()}
+const sel=(v,opts,fn)=>`<select onchange="(${fn})(this.value)">${opts.map(([k,l])=>`<option value="${k}" ${k==v?'selected':''}>${esc(l)}</option>`).join('')}</select>`;
+const dt=(k,t,b)=>`<details class="c" ${U.open[k]?'open':''} ontoggle="U.open['${k}']=this.open"><summary><b>${t}</b></summary>${b}</details>`;
+const tp=t=>S.players.map((_,i)=>i).filter(i=>P(i).t==t);
+function defM(f){const A=tp(0),B=tp(1),g=i=>A[i]??0,h=i=>B[i]??4;return f=='sg'?[0,1,2,3].map(i=>({a:[g(i)],b:[h(i)]})):f=='sp'?[]:[{a:[g(0),g(1)],b:[h(0),h(1)]},{a:[g(2),g(3)],b:[h(2),h(3)]}]}
+function setF(ri,f){const r=S.rounds[ri];r.f=f;delete r.v;r.m=defM(f);r.cup=f!='sp';save();R()}
+function addR(){S.rounds.push({l:'Round '+(S.rounds.length+1),f:'fb',c:0,m:defM('fb'),cup:true,g:true,n:true});U.open['r'+(S.rounds.length-1)]=true;save();R()}
+function arm(k){U.cf=k;R();setTimeout(()=>{if(U.cf==k){U.cf=null;R()}},4000)}
+function delC(i){if(S.courses.length<2||S.rounds.some(r=>r.c==i)){U.cmsg="Can't delete: this course is used by a round (or is your only course). Change the round's course first.";R();return}if(U.cf!='k'+i){arm('k'+i);return}U.cf=null;U.cmsg='';S.courses.splice(i,1);S.rounds.forEach(r=>{if(r.c>i)r.c--});save();R()}
+function delR(ri){if(S.rounds.length<2){U.rmsg='You need at least one round.';R();return}if(U.cf!='r'+ri){arm('r'+ri);return}U.cf=null;S.rounds.splice(ri,1);const o={};for(const k in S.sc){const[a,b]=k.split('_').map(Number);if(a==ri)continue;o[(a>ri?a-1:a)+'_'+b]=S.sc[k]}S.sc=o;S.hist=[];U.ri=0;save(true);R()}
+function addC(){S.courses.push(mkC('New course'));U.open.cs=true;save();R()}
+async function scan(i,inp){const f=inp.files[0];if(!f)return;U.scan[i]='Reading scorecard…';R();try{const sm=await claude.use('sample');if(!sm)throw Error('Scorecard reading is not available in this view.');const t=await sm('This is a photo of a golf scorecard. '+(U.tee?'Use the "'+U.tee+'" tees. ':'If several tees are listed, use the men\'s main/back tees. ')+'Reply with ONLY JSON: {"name":string,"rating":number,"slope":number,"par":[18 integers],"si":[18 integers: each hole\'s handicap/stroke index 1-18]}. Holes in order 1-18; use null for anything unreadable.',{images:[f]});const j=JSON.parse(t.text.replace(/```json|```/g,'').trim()),c=S.courses[i];if(j.par?.length!=18||j.si?.length!=18)throw Error('Could not read all 18 holes - try a clearer photo.');c.par=j.par.map(Number);c.si=j.si.map(Number);if(j.rating)c.r=+j.rating;if(j.slope)c.s=+j.slope;if(c.n=='New course'&&j.name)c.n=j.name;c.ok=false;U.scan[i]='✅ Updated from photo. Review, then confirm.';save()}catch(e){U.scan[i]='⚠️ '+(e.message||e.code||'Failed')}R()}
+async function adminIn(v){if(!v)return;const h=await sha('admin|'+v);if(!S.ah){S.ah=h;save();U.unlocked=true;U.pm=''}else if(S.ah==h){U.unlocked=true;U.pm=''}else U.pm='Wrong admin password';R()}
+async function chPw(){const v=$('np').value;if(!v)return;S.ah=await sha('admin|'+v);save();U.pm='Admin password changed.';R()}
+function gateA(){const n=!S.ah;return`<h1>Admin</h1><div class="c"><h3>${n?'Set an admin password':'Admin password'}</h3><div class="row"><input id="apw" type="password" placeholder="Admin password" style="flex:1"><button class="b" onclick="adminIn($('apw').value)">${n?'Set password':'Enter'}</button></div><div class="mut">${U.pm||''}</div></div>`}
+function admin(){if(!U.unlocked)return gateA();
+const pl=S.players.map((_,i)=>[i,P(i).n]);
+return'<h1>Admin</h1>'+dt('ap','Admin password',`<div class="row"><input id="np" type="password" placeholder="New admin password"><button class="b" onclick="chPw()">Change</button></div><div class="mut">${U.pm||''}</div><button class="b g" onclick="U.unlocked=false;U.pm='';R()">🔒 Lock admin</button>`)+
+dt('ev','Event &amp; teams',`<div class="row"><input value="${esc(S.name)}" onchange="S.name=this.value;save();R()"><input type=number value="${S.year}" onchange="S.year=+this.value;save();R()"></div><div class="mut">Name · year</div><div class="row">${S.teams.map((t,i)=>`<input value="${esc(t.n)}" onchange="S.teams[${i}].n=this.value;save();R()"><input type=color value="${t.c}" onchange="S.teams[${i}].c=this.value;save();R()">`).join('')}</div>`)+
+dt('pl','Players &amp; handicap index',S.players.map((p,i)=>`<div class="row"><input value="${esc(p.n)}" onchange="S.players[${i}].n=this.value;save();R()"><input type=number step=0.1 value="${p.h}" onchange="S.players[${i}].h=+this.value;save();R()">${sel(p.t,S.teams.map((t,k)=>[k,t.n]),'v=>{S.players['+i+'].t=+v;save();R()}')}</div>`).join(''))+
+dt('cs','Courses (confirm before play)',`<div class="mut">${U.cmsg||''}</div><div class="row">Tee <input placeholder="e.g. Blue (optional)" value="${esc(U.tee||'')}" onchange="U.tee=this.value"></div>`+S.courses.map((c,i)=>`<div style="border-top:1px solid #0002;padding:6px 0"><div class="row"><input value="${esc(c.n)}" onchange="S.courses[${i}].n=this.value;save();R()"> ${c.ok?'✅ confirmed':'<span class=tag>UNCONFIRMED</span>'}</div><div class="row">Rating <input type=number step=.1 value="${c.r}" onchange="S.courses[${i}].r=+this.value;S.courses[${i}].ok=false;save();R()"> Slope <input type=number value="${c.s}" onchange="S.courses[${i}].s=+this.value;S.courses[${i}].ok=false;save();R()"> Par ${sum(c.par)}</div>${typeof claude!='undefined'?`<div class="row">📷 <input type=file accept="image/*" onchange="scan(${i},this)"></div><div class="mut">${U.scan[i]||'Upload a scorecard photo to fill in the card.'}</div>`:''}<details ${U.open['h'+i]?'open':''} ontoggle="U.open['h${i}']=this.open"><summary>Par &amp; stroke index by hole</summary>${c.par.map((p,h)=>`<div class="row">${h+1}: par <input type=number value="${p}" style="width:56px" onchange="S.courses[${i}].par[${h}]=+this.value;S.courses[${i}].ok=false;save();R()"> SI <input type=number value="${c.si[h]}" style="width:56px" onchange="S.courses[${i}].si[${h}]=+this.value;S.courses[${i}].ok=false;save();R()"></div>`).join('')}</details><button class="b" onclick="S.courses[${i}].ok=true;save();R()">Confirm scorecard</button> <button class="b r" onclick="delC(${i})">${U.cf=='k'+i?'Tap again to confirm delete':'Delete course'}</button></div>`).join('')+`<button class="b g" onclick="addC()">＋ Add course</button>`)+
+S.rounds.map((r,ri)=>dt('r'+ri,`${esc(r.l)} · ${FM[r.f][0]} · ${esc(cr(ri).n)}`,`<div class="row"><input value="${esc(r.l)}" onchange="S.rounds[${ri}].l=this.value;save();R()"></div><div class="row">Game ${sel(r.f,Object.entries(FM).map(([k,v])=>[k,v[0]]),'v=>setF('+ri+',v)')} Course ${sel(r.c,S.courses.map((c,i)=>[i,c.n]),'v=>{S.rounds['+ri+'].c=+v;save();R()}')}</div><div class="row">${r.f!='sp'?`Points per match <input type=number step=.5 min=0 style="width:64px" value="${r.v??FM[r.f][1]}" onchange="S.rounds[${ri}].v=+this.value;save();R()">`:''}</div><div class="row">Counts toward: ${r.f!='sp'?`<label><input type=checkbox ${r.cup?'checked':''} onchange="S.rounds[${ri}].cup=this.checked;save();R()"> Ryder Cup</label>`:''}<label><input type=checkbox ${r.g?'checked':''} onchange="S.rounds[${ri}].g=this.checked;save();R()"> Gross</label><label><input type=checkbox ${r.n?'checked':''} onchange="S.rounds[${ri}].n=this.checked;save();R()"> Net</label></div><div class="mut">Course handicaps: ${S.players.map(p=>p.n+' '+CH(p,cr(ri))).join(', ')}</div>${r.m.map((m,mi)=>`<div class="row"><b>M${mi+1}</b>${['a','b'].map(s=>m[s].map((p,k)=>sel(p,pl,`v=>{S.rounds[${ri}].m[${mi}].${s}[${k}]=+v;save();R()}`)).join(' ')).join(' vs ')}</div>`).join('')}<button class="b r" onclick="delR(${ri})">${U.cf=='r'+ri?'Tap again to confirm delete':'Delete round'}</button>`)).join('')+
+`<div class="c"><button class="b" onclick="addR()">＋ Add round</button></div>`+
+dt('rs','Reset',`<div class="row"><button class="b g" onclick="rs(1)">${U.cf=='c1'?'Tap again to confirm':'Soft reset (clear scores)'}</button><button class="b g" onclick="rs(2)">${U.cf=='c2'?'Tap again to confirm':'New year'}</button></div><div class="row"><input id="rsin" placeholder="Type RESET"><button class="b r" onclick="rs(3)">Complete reset</button></div><div class="mut">${U.rm||''}</div>`)}
+function rs(k){if(k==3){if($('rsin').value!=='RESET'){U.rm='Type RESET in the box first.';R();return}U.rm='';S=mig(def())}else if(k==1){if(U.cf!='c1'){arm('c1');return}U.cf=null;S.sc={};S.hist=[]}else{if(U.cf!='c2'){arm('c2');return}U.cf=null;const c=cup();S.arch.push({y:S.year,w:c.a>c.b?S.teams[0].n:c.b>c.a?S.teams[1].n:'Tied',s:c.a+'–'+c.b});S.year++;S.sc={};S.hist=[]}save(true);R()}
+function arch(){return S.arch.length?`<div class="c"><h3>Archive</h3>${S.arch.map(a=>`${a.y}: ${esc(a.w)} (${a.s})`).join('<br>')}</div>`:''}
+function R(){if(!U.in){gate();return}const t=U.tab;$('app').innerHTML=t=='home'?home()+arch()+'<button class="b g" onclick="logout()">Log out</button>':t=='m'?matches():t=='s'?score():admin();
+$('nav').innerHTML=[['home','🏠 Home'],['m','🏆 Matches'],['s','✏️ Score'],['a','⚙️ Admin']].map(([k,l])=>`<button class="${k==t?'on':''}" onclick="U.tab='${k}';U.ex=null;R();scrollTo(0,0)">${l}</button>`).join('')}
+let sp=null;try{sp=localStorage.getItem('gcpw')}catch(e){}sp?login(sp):R();
+</script></body></html>
