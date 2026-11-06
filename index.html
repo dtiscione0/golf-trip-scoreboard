@@ -25,7 +25,7 @@ table{width:100%;border-collapse:collapse}td,th{padding:6px 4px;text-align:left;
 </style></head><body><main id="app"></main><nav id="nav"></nav>
 <script>
 // PASTE YOUR FIREBASE REALTIME DATABASE URL BETWEEN THE QUOTES, e.g. https://my-trip-default-rtdb.firebaseio.com
-const FB='',K='golfcup1',FM={fb:['Four Ball',2],hl:['High-Low',2],sg:['Singles',1],sp:['Stroke Play',0]};
+const FB='https://golf-trip-scoreboard-3af12-default-rtdb.firebaseio.com/',K='golfcup1',FM={fb:['Four Ball',2],hl:['High-Low',2],sg:['Singles',1],sp:['Stroke Play',0]};
 const mkC=(n)=>({n,r:72,s:113,par:Array(18).fill(4).map((v,i)=>[2,6,11,15].includes(i)?3:[4,8,12,17].includes(i)?5:4),si:[7,1,13,5,11,3,15,9,17,8,2,14,6,12,4,16,10,18],ok:false});
 const def=()=>({name:'Annual Golf Trip Cup',year:2027,pass:'golf',
 teams:[{n:'The North',c:'#2a5db0'},{n:'The South',c:'#b03a2e'}],
